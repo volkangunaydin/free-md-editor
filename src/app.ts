@@ -10,8 +10,9 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { Doc, MARKDOWN_EXTENSIONS, dirname, extension, isMarkdownPath, joinPath, samePath, textStats } from "./document";
 import { SourceEditor } from "./editor/source";
+import { DOCUMENT_CSS, guessTitle, renderHtmlDocument, renderMarkdown } from "./export";
 import { WysiwygEditor } from "./editor/wysiwyg";
-import { onLocaleChange, t, translateDom } from "./i18n";
+import { getLocale, onLocaleChange, t, translateDom } from "./i18n";
 import * as api from "./lib/tauri";
 import { applyTheme, loadMode, loadTheme, saveMode, saveTheme, type Mode, type Theme } from "./theme";
 import { icons } from "./ui/icons";
@@ -50,6 +51,8 @@ export class App {
     statusStats: byId("status-stats"),
     statusMode: byId("status-mode"),
     dropOverlay: byId("drop-overlay"),
+    exportMenu: byId("export-menu"),
+    printView: byId("print-view"),
   };
 
   constructor() {
@@ -60,6 +63,9 @@ export class App {
 
   async init(): Promise<void> {
     translateDom();
+    const printCss = document.createElement("style");
+    printCss.textContent = DOCUMENT_CSS;
+    document.head.appendChild(printCss);
     onLocaleChange(() => this.onLocaleChanged());
     this.renderToolbarIcons();
     this.bindToolbar();
@@ -201,6 +207,85 @@ export class App {
     return true;
   }
 
+  // ------------------------------------------------------------------ export
+
+  private exportBase(doc: Doc, ext: string): string {
+    const base = doc.fileName ? doc.fileName.replace(/\.[^.]+$/, "") : t("tab.untitled");
+    return doc.path ? joinPath(dirname(doc.path), `${base}.${ext}`) : `${base}.${ext}`;
+  }
+
+  async exportHtml(): Promise<boolean> {
+    const doc = this.active;
+    if (!doc) return false;
+    this.commitActive();
+    const path = await saveDialog({
+      title: t("dialog.exportHtmlTitle"),
+      defaultPath: this.exportBase(doc, "html"),
+      filters: [{ name: t("dialog.filter.html"), extensions: ["html", "htm"] }],
+    });
+    if (!path) return false;
+    try {
+      const html = renderHtmlDocument(doc.content, guessTitle(doc.content, docName(doc)), getLocale());
+      await api.writeFile(extension(path) ? path : `${path}.html`, html);
+      return true;
+    } catch (err) {
+      await message(String(err), { title: t("error.export"), kind: "error" });
+      return false;
+    }
+  }
+
+  async exportPdf(): Promise<boolean> {
+    const doc = this.active;
+    if (!doc) return false;
+    this.commitActive();
+    const chosen = await saveDialog({
+      title: t("dialog.exportPdfTitle"),
+      defaultPath: this.exportBase(doc, "pdf"),
+      filters: [{ name: t("dialog.filter.pdf"), extensions: ["pdf"] }],
+    });
+    if (!chosen) return false;
+    const path = extension(chosen) ? chosen : `${chosen}.pdf`;
+
+    // Fill the print-only view; everything else is hidden by @media print.
+    this.el.printView.innerHTML = renderMarkdown(doc.content);
+    await this.resolvePrintImages();
+    const previousTitle = document.title;
+    document.title = guessTitle(doc.content, docName(doc)); // becomes the PDF's title
+    try {
+      await api.exportPdf(path);
+      return true;
+    } catch (err) {
+      if (String(err).includes("unsupported")) {
+        // macOS / Linux: let the OS print dialog produce the PDF.
+        await message(t("export.pdfFallback"), { title: t("dialog.exportPdfTitle"), kind: "info" });
+        window.print();
+        return true;
+      }
+      await message(String(err), { title: t("error.export"), kind: "error" });
+      return false;
+    } finally {
+      document.title = previousTitle;
+      this.el.printView.replaceChildren();
+    }
+  }
+
+  /** Relative image paths in the print view must go through the asset protocol. */
+  private async resolvePrintImages(): Promise<void> {
+    const images = Array.from(this.el.printView.querySelectorAll<HTMLImageElement>("img[src]"));
+    await Promise.all(
+      images.map(async (img) => {
+        const src = img.getAttribute("src") ?? "";
+        const resolved = await this.resolveImage(src);
+        if (resolved !== src) img.src = resolved;
+        if (!img.complete) {
+          await new Promise<void>((done) => {
+            img.onload = img.onerror = () => done();
+          });
+        }
+      }),
+    );
+  }
+
   private askSave(doc: Doc): Promise<SaveChoice> {
     return showModal<SaveChoice>({
       title: t("unsaved.title"),
@@ -258,6 +343,7 @@ export class App {
       open: icons.folderOpen,
       save: icons.save,
       "save-as": icons.saveAs,
+      "export-menu": icons.export,
       theme: this.theme === "dark" ? icons.sun : icons.moon,
       settings: icons.settings,
     };
@@ -272,6 +358,8 @@ export class App {
   private bindToolbar(): void {
     document.addEventListener("click", (e) => {
       const target = (e.target as HTMLElement).closest<HTMLElement>("[data-action], [data-mode]");
+      // Any click outside the export menu closes it.
+      if (target?.dataset.action !== "export-menu") this.el.exportMenu.classList.add("hidden");
       if (!target) return;
       if (target.dataset.mode) {
         void this.setMode(target.dataset.mode as Mode);
@@ -299,6 +387,16 @@ export class App {
         break;
       case "save-as":
         await this.saveAs();
+        break;
+      case "export-menu":
+        this.el.exportMenu.classList.toggle("hidden");
+        (this.el.exportMenu.querySelector("button") as HTMLButtonElement | null)?.focus();
+        break;
+      case "export-html":
+        await this.exportHtml();
+        break;
+      case "export-pdf":
+        await this.exportPdf();
         break;
       case "theme":
         this.toggleTheme();
@@ -399,6 +497,7 @@ export class App {
       "keydown",
       (e) => {
         if (isModalOpen()) return;
+        if (e.key === "Escape") this.el.exportMenu.classList.add("hidden");
         const ctrl = e.ctrlKey || e.metaKey;
         if (!ctrl) return;
         const key = e.key.toLowerCase();
@@ -409,6 +508,7 @@ export class App {
         else if (key === "s" && e.shiftKey) void this.saveAs();
         else if (key === "s") void this.save();
         else if (key === "w") void this.closeDoc();
+        else if (key === "p") void this.exportPdf();
         else if (key === "e") void this.setMode(this.mode === "wysiwyg" ? "source" : "wysiwyg");
         else if (key === "tab") this.cycleTab(e.shiftKey ? -1 : 1);
         else if (key === "," ) void showSettings();

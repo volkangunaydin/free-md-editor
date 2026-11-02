@@ -52,6 +52,7 @@ export async function showSettings(): Promise<void> {
           <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>${t("shortcut.save")}</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>${t("shortcut.saveAs")}</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>${t("shortcut.close")}</td><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd></td><td>${t("shortcut.nextTab")}</td></tr>
           <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>${t("shortcut.toggleMode")}</td><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td><td>${t("shortcut.settings")}</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>${t("shortcut.exportPdf")}</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>${t("shortcut.prevTab")}</td></tr>
         </table>
       </section>
 

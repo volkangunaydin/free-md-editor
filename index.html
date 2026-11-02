@@ -15,6 +15,12 @@
           <button class="tb-btn" data-action="open" data-i18n-title="toolbar.open"></button>
           <button class="tb-btn" data-action="save" data-i18n-title="toolbar.save"></button>
           <button class="tb-btn" data-action="save-as" data-i18n-title="toolbar.saveAs"></button>
+          <span class="toolbar-sep"></span>
+          <button class="tb-btn" data-action="export-menu" data-i18n-title="toolbar.export" aria-haspopup="menu"></button>
+          <div class="menu hidden" id="export-menu" role="menu">
+            <button class="menu-item" role="menuitem" data-action="export-html"><span data-i18n="export.html"></span></button>
+            <button class="menu-item" role="menuitem" data-action="export-pdf"><span data-i18n="export.pdf"></span><kbd>Ctrl+P</kbd></button>
+          </div>
         </div>
 
         <div class="toolbar-group mode-switch" role="tablist">
@@ -63,5 +69,7 @@
       </div>
       <div id="modal-root"></div>
     </div>
+    <!-- Only visible when printing / exporting to PDF -->
+    <article id="print-view" class="md-doc print-only"></article>
   </body>
 </html>

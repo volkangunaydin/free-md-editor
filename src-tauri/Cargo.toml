@@ -30,6 +30,8 @@ tauri-plugin-single-instance = "2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+webview2-com = "0.39"
+windows = { version = "0.62", features = ["Win32_Foundation"] }
 
 [profile.release]
 codegen-units = 1

@@ -74,6 +74,20 @@ pub fn write_file(path: String, content: String) -> Result<String, String> {
     Ok(canonical_string(target))
 }
 
+/// Print the current webview (print media CSS applied) straight to a PDF file.
+#[tauri::command]
+pub async fn export_pdf(window: tauri::WebviewWindow, path: String) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        crate::pdf::print_to_pdf(window, path).await
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (window, path);
+        Err("unsupported".into())
+    }
+}
+
 /// Let the webview load local images (relative paths in Markdown) from `path`
 /// through the `asset:` protocol. Called lazily by the frontend per directory.
 #[tauri::command]

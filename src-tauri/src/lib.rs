@@ -9,6 +9,7 @@
 
 mod assoc;
 mod commands;
+mod pdf;
 
 use tauri::{Emitter, Manager};
 
@@ -61,6 +62,7 @@ pub fn run() {
             commands::file_exists,
             commands::startup_files,
             commands::allow_asset_dir,
+            commands::export_pdf,
             commands::is_file_association_registered,
             commands::register_file_association,
             commands::unregister_file_association,

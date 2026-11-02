@@ -26,6 +26,9 @@ export const startupFiles = () => invoke<string[]>("startup_files");
 /** Allow the webview to load images from this directory through the asset protocol. */
 export const allowAssetDir = (path: string) => invoke<void>("allow_asset_dir", { path });
 
+/** Print the webview (print CSS applied) to a PDF file. Rejects with "unsupported" off Windows. */
+export const exportPdf = (path: string) => invoke<void>("export_pdf", { path });
+
 export const isAssociationRegistered = () => invoke<boolean>("is_file_association_registered");
 export const registerAssociation = () => invoke<void>("register_file_association");
 export const unregisterAssociation = () => invoke<void>("unregister_file_association");
