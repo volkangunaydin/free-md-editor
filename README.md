@@ -16,8 +16,8 @@ Built with [Tauri 2](https://tauri.app) (Rust) + [Milkdown](https://milkdown.dev
   on start, so a portable copy works too. Double-clicking a second file opens it as a
   new tab in the running window (single instance).
 - **Tabs**, drag & drop from Explorer, unsaved-change protection, atomic saves.
-- **Export to HTML** (self-contained, syntax-highlighted) and **PDF** (direct on Windows via
-  WebView2; print dialog on macOS/Linux).
+- **Export to HTML** (self-contained: syntax highlighting and KaTeX math with embedded fonts)
+  and **PDF** (direct on Windows via WebView2; print dialog on macOS/Linux).
 - **Light / dark theme**, remembered window size & position.
 - **Languages**: English, Türkçe, Français, Deutsch (auto-detected, switchable in Settings).
 - GitHub-flavoured Markdown: tables, task lists, fenced code with syntax highlighting,

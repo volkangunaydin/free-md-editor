@@ -10,7 +10,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { Doc, MARKDOWN_EXTENSIONS, dirname, extension, isMarkdownPath, joinPath, samePath, textStats } from "./document";
 import { SourceEditor } from "./editor/source";
-import { DOCUMENT_CSS, guessTitle, renderHtmlDocument, renderMarkdown } from "./export";
+import { DOCUMENT_CSS, getKatexCss, guessTitle, hasMath, renderHtmlDocument, renderMarkdown } from "./export";
 import { WysiwygEditor } from "./editor/wysiwyg";
 import { getLocale, onLocaleChange, t, translateDom } from "./i18n";
 import * as api from "./lib/tauri";
@@ -225,7 +225,7 @@ export class App {
     });
     if (!path) return false;
     try {
-      const html = renderHtmlDocument(doc.content, guessTitle(doc.content, docName(doc)), getLocale());
+      const html = await renderHtmlDocument(doc.content, guessTitle(doc.content, docName(doc)), getLocale());
       await api.writeFile(extension(path) ? path : `${path}.html`, html);
       return true;
     } catch (err) {
@@ -247,7 +247,14 @@ export class App {
     const path = extension(chosen) ? chosen : `${chosen}.pdf`;
 
     // Fill the print-only view; everything else is hidden by @media print.
-    this.el.printView.innerHTML = renderMarkdown(doc.content);
+    const body = renderMarkdown(doc.content);
+    this.el.printView.innerHTML = body;
+    const mathStyle = document.createElement("style");
+    if (hasMath(body)) {
+      mathStyle.textContent = await getKatexCss();
+      document.head.appendChild(mathStyle);
+      await document.fonts.ready;
+    }
     await this.resolvePrintImages();
     const previousTitle = document.title;
     document.title = guessTitle(doc.content, docName(doc)); // becomes the PDF's title
@@ -265,6 +272,7 @@ export class App {
       return false;
     } finally {
       document.title = previousTitle;
+      mathStyle.remove();
       this.el.printView.replaceChildren();
     }
   }

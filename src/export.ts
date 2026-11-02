@@ -19,7 +19,61 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import hljsCss from "highlight.js/styles/github.css?inline";
+// `?raw` keeps the original `url(fonts/…)` references untouched (Vite would
+// otherwise rewrite them to dev-server / hashed asset URLs before we can inline them).
+import katexCss from "katex/dist/katex.min.css?raw";
 import { Marked } from "marked";
+import markedKatex from "marked-katex-extension";
+
+/**
+ * KaTeX stylesheet with every font embedded as a base64 data URI, so the
+ * exported HTML stays a single self-contained file (works offline).
+ */
+const katexFonts = import.meta.glob("/node_modules/katex/dist/fonts/*.woff2", {
+  query: "?inline",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+let katexCssPromise: Promise<string> | null = null;
+
+/**
+ * KaTeX CSS with fonts as data URIs. In a production build Vite already
+ * inlined them; in `tauri dev` the glob yields dev-server URLs, so fetch and
+ * encode those on first use.
+ */
+export function getKatexCss(): Promise<string> {
+  katexCssPromise ??= (async () => {
+    const fonts = new Map<string, string>();
+    await Promise.all(
+      Object.entries(katexFonts).map(async ([path, url]) => {
+        const name = path.slice(path.lastIndexOf("/") + 1);
+        fonts.set(name, url.startsWith("data:") ? url : await toDataUri(url));
+      }),
+    );
+    return katexCss.replace(
+      /src:url\(fonts\/([^)]+\.woff2)\)\s*format\("woff2"\)[^;}]*/g,
+      (match, name: string) => {
+        const dataUri = fonts.get(name);
+        return dataUri ? `src:url(${dataUri}) format("woff2")` : match;
+      },
+    );
+  })();
+  return katexCssPromise;
+}
+
+async function toDataUri(url: string): Promise<string> {
+  const blob = await (await fetch(url)).blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** True when rendered HTML contains KaTeX output and therefore needs its CSS. */
+export const hasMath = (html: string) => html.includes('class="katex');
 
 const languages: Record<string, Parameters<typeof hljs.registerLanguage>[1]> = {
   bash, sh: bash, shell: bash, zsh: bash,
@@ -43,7 +97,10 @@ for (const [name, def] of Object.entries(languages)) hljs.registerLanguage(name,
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const marked = new Marked({
+const marked = new Marked(
+  // $inline$ and $$block$$ math via KaTeX; invalid TeX is shown in red instead of throwing.
+  markedKatex({ throwOnError: false, nonStandard: true }),
+  {
   gfm: true,
   breaks: false,
   renderer: {
@@ -56,7 +113,8 @@ const marked = new Marked({
       return `<pre><code${cls}>${body}\n</code></pre>\n`;
     },
   },
-});
+  },
+);
 
 /** Render Markdown to an HTML fragment (no <html> wrapper). */
 export function renderMarkdown(markdown: string): string {
@@ -114,7 +172,10 @@ ${hljsCss}
 `;
 
 /** A complete, self-contained HTML document. */
-export function renderHtmlDocument(markdown: string, title: string, lang = "en"): string {
+export async function renderHtmlDocument(markdown: string, title: string, lang = "en"): Promise<string> {
+  const body = renderMarkdown(markdown);
+  // KaTeX CSS (+ ~400 KB of embedded fonts) only when the document actually uses math.
+  const mathCss = hasMath(body) ? `<style>\n${await getKatexCss()}\n</style>\n` : "";
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">
 <head>
@@ -126,10 +187,10 @@ export function renderHtmlDocument(markdown: string, title: string, lang = "en")
 body { margin: 0; background: #fff; }
 ${DOCUMENT_CSS}
 </style>
-</head>
+${mathCss}</head>
 <body>
 <article class="md-doc">
-${renderMarkdown(markdown)}
+${body}
 </article>
 </body>
 </html>
