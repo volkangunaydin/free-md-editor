@@ -1,6 +1,7 @@
 # Free MD Editor
 
-A free, open-source Markdown editor for Windows. Double-click any `.md` file and
+A free, open-source Markdown editor. Windows is the primary target; macOS and Linux
+builds are produced by the same release workflow. Double-click any `.md` file and
 edit it either **visually** (WYSIWYG) or as **source** (Monaco, the editor behind
 VS Code) — switch between the two at any time with `Ctrl+E`.
 
@@ -34,9 +35,14 @@ Built with [Tauri 2](https://tauri.app) (Rust) + [Milkdown](https://milkdown.dev
 
 ## Install
 
-Download the latest `Free MD Editor_x.y.z_x64-setup.exe` from the
-[Releases](https://github.com/volkangunaydin/free-md-editor/releases) page. The
-installer is per-user (no administrator rights) and registers the Markdown file types.
+Download the latest build from the
+[Releases](https://github.com/volkangunaydin/free-md-editor/releases) page:
+
+| Platform | File |
+| --- | --- |
+| Windows 10/11 | `Free MD Editor_x.y.z_x64-setup.exe` (per-user installer, registers the Markdown file types) |
+| macOS (Apple Silicon / Intel) | `Free MD Editor_x.y.z_aarch64.dmg` / `_x64.dmg` (unsigned: right-click → Open on first launch) |
+| Linux | `.deb` (Debian/Ubuntu) or `.AppImage` |
 
 To make it the *default* app for `.md` files, open **Settings → Apps → Default apps**
 (the app's Settings dialog has a shortcut) and pick *Free MD Editor*. Windows only lets

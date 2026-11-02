@@ -41,7 +41,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": "all",
     "publisher": "Volkan Günaydın",
     "copyright": "Copyright © 2026 Volkan Günaydın. MIT License.",
     "category": "Productivity",

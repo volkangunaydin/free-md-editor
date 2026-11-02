@@ -7,6 +7,8 @@ import { icons } from "./icons";
 import { html, showModal } from "./modal";
 
 const REPO_URL = "https://github.com/volkangunaydin/free-md-editor";
+/** Registry-based file association only exists on Windows; macOS/Linux use the bundle metadata. */
+const IS_WINDOWS = navigator.userAgent.includes("Windows");
 
 export async function showSettings(): Promise<void> {
   const [registered, version] = await Promise.all([
@@ -27,7 +29,7 @@ export async function showSettings(): Promise<void> {
         </div>
       </section>
 
-      <section class="settings-section">
+      <section class="settings-section${IS_WINDOWS ? "" : " hidden"}">
         <h3>${t("settings.assoc")}</h3>
         <p class="settings-help">${t("settings.assoc.help")}</p>
         <div class="settings-row">

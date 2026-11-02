@@ -42,7 +42,7 @@ if not exist node_modules (
 
 REM --- build ---------------------------------------------------------------
 echo Building release installer (this takes a few minutes the first time)...
-call npm run tauri build || (echo. & echo BUILD FAILED. & exit /b 1)
+call npm run tauri build -- --bundles nsis || (echo. & echo BUILD FAILED. & exit /b 1)
 
 REM --- collect output ------------------------------------------------------
 if not exist setup mkdir setup
