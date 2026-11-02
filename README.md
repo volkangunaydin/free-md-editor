@@ -58,6 +58,9 @@ npm run tauri dev      # run in development mode
 npm run tauri build    # produce the NSIS installer in src-tauri/target/release/bundle/nsis
 ```
 
+On Windows you can simply double-click **`create-setup.bat`**: it checks the toolchain,
+installs npm dependencies if needed, builds the installer and copies it to `setup\`.
+
 If the build complains that `rc.exe` was not found, add the Windows SDK `bin\<version>\x64`
 (or `x86`) directory to your `PATH`, or run the command from a *Developer PowerShell for VS*.
 
